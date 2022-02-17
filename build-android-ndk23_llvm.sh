@@ -1,5 +1,8 @@
 #!/bin/bash
-export NDK=~/Library/Android/sdk/ndk/23.1.7779620 # 这里需要替换成你本地的 NDK 路径，其他的不用修改
+
+#########################################
+
+export NDK=~/Library/Android/sdk/ndk/23.1.7779620 #这里配置先你的 NDK 路径
 TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/darwin-x86_64
 
 function build_android
@@ -9,59 +12,68 @@ function build_android
 --prefix=$PREFIX \
 --enable-neon  \
 --enable-hwaccels  \
---enable-gpl   \
+--disable-gpl   \
 --disable-postproc \
---enable-static \
---enable-shared \
 --disable-debug \
 --enable-small \
 --enable-jni \
 --enable-mediacodec \
+--enable-decoder=h264_mediacodec \
+--enable-static \
+--enable-shared \
 --disable-doc \
 --enable-ffmpeg \
 --disable-ffplay \
 --disable-ffprobe \
---disable-avdevice \
+--enable-avdevice \
 --disable-doc \
 --disable-symver \
---enable-libx264 \
---enable-libfdk-aac \
---enable-encoder=libx264 \
---enable-encoder=libfdk-aac \
---enable-nonfree \
---enable-muxers \
---enable-decoders \
---enable-demuxers \
---enable-parsers \
---enable-protocols \
 --cross-prefix=$CROSS_PREFIX \
+--cross-prefix=${TOOLCHAIN}/bin/aarch64-linux-android$API- \
 --target-os=android \
 --arch=$ARCH \
 --cpu=$CPU \
 --cc=$CC \
 --cxx=$CXX \
+--nm=$NM \
+--ar=$AR \
+--ranlib=$RNADLIB \
+--strip=$STRIP \
 --enable-cross-compile \
 --sysroot=$SYSROOT \
 --extra-cflags="-Os -fpic $OPTIMIZE_CFLAGS" \
---extra-ldflags="-lm" 
+--extra-ldflags="$ADDI_LDFLAGS"
 
 make clean
-make -j8
+make -j4
 make install
-echo "The Compilation of FFmpeg with x264,fdk-aac for $CPU is completed"
+
+echo "============================ build android arm64-v8a success =========================="
+
 }
 
-#armv8-a
+rm -rf build/android
+mkdir build/android
+
+pushd ../FFmpeg
+
+#arm64-v8a
 ARCH=arm64
 CPU=armv8-a
 API=21
 CC=$TOOLCHAIN/bin/aarch64-linux-android$API-clang
 CXX=$TOOLCHAIN/bin/aarch64-linux-android$API-clang++
+NM=$TOOLCHAIN/bin/llvm-nm
+AR=$TOOLCHAIN/bin/llvm-ar
+RNADLIB=${TOOLCHAIN}/bin/llvm-ranlib
+STRIP=${TOOLCHAIN}/bin/llvm-strip
 SYSROOT=$NDK/toolchains/llvm/prebuilt/darwin-x86_64/sysroot
-CROSS_PREFIX=$TOOLCHAIN/bin/aarch64-linux-android-
+CROSS_PREFIX=$TOOLCHAIN/bin/aarch64-linux-android$API-
 PREFIX=$(pwd)/android/$CPU
-OPTIMIZE_CFLAGS="-mfloat-abi=softfp -mfpu=vfp -marm -march=$CPU "
-
-LIB_TARGET_ABI=arm64-v8a
+OPTIMIZE_CFLAGS="-march=$CPU"
 
 build_android
+
+cp -rf android/* ../FFmpeg-Build-Scripts/build/android
+
+popd
