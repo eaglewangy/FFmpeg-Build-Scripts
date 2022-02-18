@@ -74,6 +74,6 @@ OPTIMIZE_CFLAGS="-march=$CPU"
 
 build_android
 
-cp -rf android/* ../FFmpeg-Build-Scripts/build/android
+cp -rf android/* ../FFmpeg-Dig/build/android
 
 popd
